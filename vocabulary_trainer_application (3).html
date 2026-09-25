@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vocabulary Trainer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=M+PLUS+Rounded+1c:wght@700;900&family=Chakra+Petch:wght@700;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --pixel-scale: 2px;
+        }
+
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background-color: #050508;
+            color: #f8fafc;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .font-arcade { font-family: 'Press Start 2P', monospace; }
+        .font-cyber { font-family: 'Chakra Petch', sans-serif; }
+
+        /* CRT Scanline & Retro Effect Overlay */
+        .crt-overlay::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 40;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+        }
+
+        .pixel-border {
+            border: 4px solid #f59e0b;
+            box-shadow: 0 0 0 4px #0f172a, 0 0 20px rgba(245, 158, 11, 0.4);
+        }
+
+        .text-glow-yellow {
+            text-shadow: 0 0 10px rgba(250, 204, 21, 0.9), 0 0 25px rgba(245, 158, 11, 0.6);
+        }
+
+        .text-glow-cyan {
+            text-shadow: 0 0 10px rgba(6, 182, 212, 0.9), 0 0 25px rgba(6, 182, 212, 0.6);
+        }
+
+        /* RPG Battle Stage Pixel Background */
+        .dungeon-bg {
+            background-color: #0b0f19;
+            background-image: 
+                radial-gradient(circle at 50% 30%, rgba(30, 27, 75, 0.8) 0%, rgba(5, 5, 12, 0.95) 80%),
+                repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255, 255, 255, 0.02) 40px, rgba(255, 255, 255, 0.02) 80px);
+        }
+
+        /* Sprite Animations */
+        @keyframes heroFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-3px); }
+        }
+
+        @keyframes heroSlashAttack {
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+            30% { transform: translate(140px, -20px) scale(1.2) rotate(15deg); }
+            60% { transform: translate(220px, -10px) scale(1.25) rotate(25deg); }
+            100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+        }
+
+        @keyframes dragonBreathe {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-8px) scale(1.02); }
+        }
+
+        @keyframes monsterDamage {
+            0% { filter: brightness(4) saturate(3) hue-rotate(90deg); transform: scale(1.1) translateX(15px); }
+            20% { filter: brightness(1) invert(0.8); transform: scale(0.9) translateX(-15px); }
+            40% { filter: brightness(3); transform: scale(1.15) translateX(10px); }
+            100% { filter: brightness(1); transform: scale(1) translateX(0); }
+        }
+
+        @keyframes monsterVanish {
+            0% { transform: scale(1) rotate(0deg); filter: brightness(5) saturate(3); opacity: 1; }
+            50% { transform: scale(1.4) rotate(15deg); filter: brightness(8); opacity: 0.8; }
+            100% { transform: scale(0) rotate(-90deg) translateY(120px); filter: blur(10px); opacity: 0; }
+        }
+
+        @keyframes slashSlash {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(-60deg); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.8) rotate(-10deg); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(2.8) rotate(30deg); }
+        }
+
+        @keyframes monsterAttackMotion {
+            0% { transform: translate(0, 0) scale(1); }
+            40% { transform: translate(-140px, 15px) scale(1.25); }
+            100% { transform: translate(0, 0) scale(1); }
+        }
+
+        @keyframes heroDamageMotion {
+            0% { filter: brightness(4) sepia(1) hue-rotate(-50deg); transform: translateX(0) scale(1); }
+            25% { transform: translateX(-12px) scale(0.95); }
+            50% { transform: translateX(12px) scale(1.05); }
+            75% { transform: translateX(-6px); }
+            100% { filter: brightness(1); transform: translateX(0) scale(1); }
+        }
+
+        .animate-hero-idle { animation: heroFloat 2.2s ease-in-out infinite; }
+        .animate-hero-attack { animation: heroSlashAttack 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .animate-dragon-idle { animation: dragonBreathe 3s ease-in-out infinite; }
+        .animate-monster-damage { animation: monsterDamage 0.35s ease-in-out; }
+        .animate-monster-defeat { animation: monsterVanish 0.8s ease-in forwards; }
+        .animate-slash-effect { animation: slashSlash 0.4s ease-out forwards; }
+        .animate-monster-attack { animation: monsterAttackMotion 0.4s ease-in-out; }
+        .animate-hero-damage { animation: heroDamageMotion 0.45s ease-in-out; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #090d16; }
+        ::-webkit-scrollbar-thumb { background: #f59e0b; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between crt-overlay bg-slate-950 text-slate-100">
+
+    <!-- Top Navigation Bar -->
+    <header class="w-full bg-slate-900/90 border-b-4 border-amber-500/80 px-4 py-3 flex justify-between items-center z-30 shadow-2xl backdrop-blur">
+        <div class="flex items-center gap-3">
+            <i class="fa-solid fa-dragon text-amber-400 text-2xl md:text-3xl animate-pulse"></i>
+            <div>
+                <h1 class="text-xl md:text-3xl font-black font-arcade tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500">
+                    VOCABULARY TRAINER
+                </h1>
+                <p class="text-[10px] md:text-xs text-amber-300/80 font-mono tracking-widest">DRAGON BATTLES TYPING RPG</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 md:gap-4">
+            <button onclick="openTeacherModal()" class="px-3 py-2 md:px-5 md:py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl border-2 border-indigo-400/80 shadow-lg hover:shadow-indigo-500/50 transition-all flex items-center gap-2 text-xs md:text-sm">
+                <i class="fa-solid fa-file-csv text-yellow-300"></i>
+                <span class="hidden sm:inline">教員メニュー / CSV管理</span>
+                <span class="sm:hidden">管理</span>
+            </button>
+            <button id="btnSoundToggle" onclick="toggleAudio()" class="p-2 md:px-3 md:py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-600 text-xs md:text-sm">
+                <i id="soundIcon" class="fa-solid fa-volume-high text-amber-400"></i>
+            </button>
+        </div>
+    </header>
+
+    <main id="mainApp" class="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 md:p-6 relative overflow-hidden">
+
+        <!-- VIEW 1: START / DATASET & DIFFICULTY SELECTION SCREEN -->
+        <div id="screenStart" class="w-full max-w-4xl bg-slate-900/95 border-4 border-amber-500/80 rounded-3xl p-6 md:p-10 text-center shadow-2xl relative z-10 my-auto">
+            <div class="inline-block px-4 py-1.5 bg-amber-950/80 border border-amber-400 rounded-full text-amber-300 text-xs md:text-sm font-bold mb-4 animate-bounce">
+                ⚔️ ドラゴンが立ちはだかる！英単語をタイプして倒せ！
+            </div>
+
+            <!-- Problem Dataset Dropdown Select Box -->
+            <div class="bg-slate-950/90 p-4 md:p-6 rounded-2xl border-2 border-indigo-500/60 text-left mb-6 shadow-inner">
+                <label for="datasetSelect" class="block text-amber-400 font-bold text-base md:text-lg mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-book-bookmark text-xl"></i> 挑戦する問題セットを選択:
+                </label>
+                <select id="datasetSelect" onchange="onDatasetChange()" class="w-full bg-slate-900 border-2 border-amber-400/80 rounded-xl px-4 py-3 text-lg md:text-xl font-bold text-white focus:outline-none focus:ring-2 focus:ring-amber-300">
+                    <!-- Loaded dynamically via LocalStorage -->
+                </select>
+                <p id="datasetInfoText" class="text-xs md:text-sm text-slate-400 mt-2 font-mono">収録問題数: 0問</p>
+            </div>
+
+            <h3 class="text-xl md:text-2xl font-black text-white mb-4">難易度（ヒントモード）を選択</h3>
+
+            <!-- Difficulty Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
+                <button onclick="selectDifficulty('easy')" id="btnEasy" class="diff-card p-5 bg-slate-800/90 border-4 border-emerald-500/60 rounded-2xl text-left hover:bg-emerald-950/40 transition-all">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xl font-black text-emerald-400 font-cyber">EASY</span>
+                        <i class="fa-solid fa-shield-cat text-emerald-400 text-xl"></i>
+                    </div>
+                    <p class="text-emerald-200 text-xs md:text-sm">
+                        【初級】文字数枠表示 + <strong class="text-yellow-300">頭文字と語尾ヒント</strong><br>(例: a _ _ _ e)
+                    </p>
+                </button>
+
+                <button onclick="selectDifficulty('normal')" id="btnNormal" class="diff-card p-5 bg-slate-800/90 border-4 border-amber-500/60 rounded-2xl text-left hover:bg-amber-950/40 transition-all">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xl font-black text-amber-400 font-cyber">NORMAL</span>
+                        <i class="fa-solid fa-khanda text-amber-400 text-xl"></i>
+                    </div>
+                    <p class="text-amber-200 text-xs md:text-sm">
+                        【標準】文字数枠表示のみ<br>(例: _ _ _ _ _)
+                    </p>
+                </button>
+
+                <button onclick="selectDifficulty('hard')" id="btnHard" class="diff-card p-5 bg-slate-800/90 border-4 border-rose-500/60 rounded-2xl text-left hover:bg-rose-950/40 transition-all">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xl font-black text-rose-400 font-cyber">HARD</span>
+                        <i class="fa-solid fa-skull text-rose-400 text-xl"></i>
+                    </div>
+                    <p class="text-rose-200 text-xs md:text-sm">
+                        【上級】ヒント・文字数指定なし<br>(真の実力勝負)
+                    </p>
+                </button>
+            </div>
+
+            <button onclick="startBattle()" class="w-full py-5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-2xl md:text-3xl rounded-2xl shadow-xl shadow-amber-500/30 hover:scale-102 active:scale-98 transition-all font-cyber flex items-center justify-center gap-3">
+                <i class="fa-solid fa-dragon"></i> BATTLE START!
+            </button>
+        </div>
+
+        <!-- VIEW 2: GAMEPLAY RPG BATTLE SCREEN -->
+        <div id="screenGame" class="hidden w-full max-w-5xl flex flex-col items-center gap-3 relative z-10 my-auto">
+            
+            <!-- Game Top Status Bar -->
+            <div class="w-full bg-slate-900/95 border-2 border-amber-500/60 rounded-2xl p-3 md:p-4 flex justify-between items-center shadow-2xl flex-wrap md:flex-nowrap gap-2">
+                <div class="flex items-center gap-3 md:gap-6">
+                    <div>
+                        <div class="text-[10px] md:text-xs text-slate-400 font-bold">STAGE</div>
+                        <div class="text-lg md:text-2xl font-black text-amber-400 font-cyber">
+                            <span id="currentQuestionNum">1</span> / <span id="totalQuestionsNum">10</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] md:text-xs text-slate-400 font-bold">SCORE</div>
+                        <div id="scoreDisplay" class="text-xl md:text-3xl font-black text-yellow-400 font-cyber text-glow-yellow">0000</div>
+                    </div>
+                </div>
+
+                <div class="w-1/4 max-w-[140px] md:max-w-[160px]">
+                    <div class="flex justify-between text-[10px] md:text-xs font-bold text-slate-300 mb-1">
+                        <span class="text-rose-400"><i class="fa-solid fa-heart"></i> HERO HP</span>
+                        <span id="heroHpText" class="font-cyber text-rose-300">7 / 7</span>
+                    </div>
+                    <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-700">
+                        <div id="heroHpBar" class="bg-gradient-to-r from-rose-500 to-emerald-400 h-full w-full transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <span id="comboDisplay" class="text-2xl md:text-4xl font-black text-fuchsia-400 font-cyber">0</span>
+                    <span class="text-[10px] text-fuchsia-300 font-bold block">COMBO!</span>
+                </div>
+
+                <div class="w-1/4 max-w-[140px] md:max-w-[160px]">
+                    <div class="flex justify-between text-[10px] md:text-xs font-bold text-slate-300 mb-1">
+                        <span>TIME</span>
+                        <span id="timeText" class="font-cyber text-cyan-300">10.0s</span>
+                    </div>
+                    <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-700">
+                        <div id="timeBar" class="bg-gradient-to-r from-cyan-400 to-emerald-400 h-full w-full transition-all duration-100"></div>
+                    </div>
+                </div>
+
+                <!-- Quit & Return Home Actions -->
+                <div class="flex items-center gap-2">
+                    <button onclick="openQuitModal()" title="ゲームを途中で終了" class="px-3 py-2 bg-rose-950/80 hover:bg-rose-800 text-rose-300 hover:text-white rounded-xl border border-rose-600/60 transition-all text-xs font-bold flex items-center gap-1.5 shadow-md">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span class="hidden sm:inline">途中終了</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- BATTLE ARENA (16-BIT RETRO RPG DUNGEON SCENE) -->
+            <div id="battleArena" class="w-full dungeon-bg border-4 border-amber-600/70 rounded-3xl p-4 md:p-6 flex flex-col justify-between min-h-[280px] md:min-h-[360px] relative overflow-hidden shadow-2xl">
+                
+                <!-- Dungeon Torches Background Decorative SVG -->
+                <div class="absolute top-6 left-10 opacity-70 animate-pulse">
+                    <i class="fa-solid fa-fire-flame-curved text-amber-500 text-3xl"></i>
+                </div>
+                <div class="absolute top-6 right-10 opacity-70 animate-pulse">
+                    <i class="fa-solid fa-fire-flame-curved text-amber-500 text-3xl"></i>
+                </div>
+
+                <!-- KO BANNER & SLASH OVERLAY -->
+                <div id="koBanner" class="absolute inset-0 pointer-events-none opacity-0 flex items-center justify-center bg-red-950/40 z-30 transition-opacity duration-300">
+                    <span class="text-4xl md:text-7xl font-black font-cyber text-yellow-400 drop-shadow-[0_0_30px_rgba(239,68,68,1)] tracking-widest animate-bounce">TARGET DOWN!</span>
+                </div>
+                <div id="slashEffect" class="absolute inset-0 pointer-events-none opacity-0 flex items-center justify-center z-30">
+                    <i class="fa-solid fa-bolt-lightning text-yellow-300 text-8xl md:text-9xl drop-shadow-[0_0_30px_rgba(250,204,21,1)]"></i>
+                </div>
+
+                <!-- FULLSCREEN MODEL ANSWER OVERLAY (正解・不正解時の画面いっぱい模範解答表示) -->
+                <div id="modelAnswerOverlay" class="hidden absolute inset-0 bg-slate-950/95 z-40 flex flex-col items-center justify-center p-6 text-center transition-all duration-300 border-4 border-amber-400">
+                    <div id="answerResultBadge" class="text-2xl md:text-4xl font-black font-cyber mb-2 px-6 py-2 rounded-full shadow-lg">
+                        CORRECT!
+                    </div>
+                    <div class="text-xs md:text-sm text-amber-400/80 font-bold tracking-widest uppercase mb-1">
+                        - 模範解答 (MODEL ANSWER) -
+                    </div>
+                    <!-- 画面いっぱいの巨大英単語表示 -->
+                    <div id="overlayAnswerEn" class="text-5xl sm:text-7xl md:text-9xl font-black font-cyber text-amber-300 text-glow-yellow tracking-wider my-2 break-all leading-none">
+                        APPLE
+                    </div>
+                    <!-- 日本語の意味 -->
+                    <div id="overlayAnswerJp" class="text-2xl sm:text-4xl md:text-5xl font-bold text-white mb-6">
+                        りんご
+                    </div>
+                    <!-- ユーザーの入力比較 -->
+                    <div id="overlayUserTyped" class="text-sm md:text-xl font-mono text-slate-300 bg-slate-900/90 px-6 py-3 rounded-2xl border border-slate-700">
+                        あなたの入力: <span id="overlayUserTypedText" class="font-bold text-yellow-400">apple</span>
+                    </div>
+                </div>
+
+                <!-- RPG SPRITE ARENA (HERO FRONT VIEW vs FRONT MONSTER) -->
+                <div class="relative flex justify-between items-end px-4 md:px-16 py-2 my-auto">
+                    
+                    <!-- HERO SPRITE (FRONT VIEW FACING FORWARD / TOWARDS SCREEN) -->
+                    <div id="heroContainer" class="relative animate-hero-idle z-20 flex flex-col items-center">
+                        <div class="w-full mb-1 text-center">
+                            <span class="text-[10px] md:text-xs font-bold text-cyan-300 font-cyber bg-slate-900/80 px-2 py-0.5 rounded-full border border-cyan-500/50">HERO (YOU)</span>
+                        </div>
+                        <svg class="w-28 h-32 md:w-44 md:h-52 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]" viewBox="0 0 120 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Blue Flowing Cloak/Cape Behind -->
+                            <path d="M25 50 Q60 40 95 50 L105 125 Q60 135 15 125 Z" fill="#1e3a8a"/>
+                            <path d="M30 52 Q60 42 90 52 L98 120 Q60 128 22 120 Z" fill="#2563eb"/>
+                            
+                            <!-- Legs & Armored Boots (Front View) -->
+                            <rect x="42" y="98" width="14" height="28" rx="4" fill="#334155"/>
+                            <rect x="64" y="98" width="14" height="28" rx="4" fill="#334155"/>
+                            <path d="M38 120 L58 120 L58 132 L36 132 Z" fill="#64748b"/>
+                            <path d="M62 120 L82 120 L84 132 L62 132 Z" fill="#64748b"/>
+
+                            <!-- Front Armor / Torso -->
+                            <path d="M35 52 L85 52 L78 100 L42 100 Z" fill="#475569"/>
+                            <path d="M42 55 L78 55 L72 95 L48 95 Z" fill="#0284c7"/>
+                            <!-- Golden Chest Crest Emblem -->
+                            <polygon points="60,60 68,72 60,84 52,72" fill="#f59e0b"/>
+
+                            <!-- Right Hand Holding Sword Upward (Viewer's Left) -->
+                            <path d="M20 62 L28 62 L26 80 L18 80 Z" fill="#334155"/>
+                            <!-- Sword Blade Guard & Blade -->
+                            <rect x="10" y="58" width="22" height="6" fill="#f59e0b"/>
+                            <path d="M18 58 L24 58 L24 10 L21 2 L18 10 Z" fill="#e2e8f0"/>
+                            <path d="M21 58 L24 58 L24 10 L21 2 Z" fill="#cbd5e1"/>
+
+                            <!-- Left Hand Holding Shield (Viewer's Right) -->
+                            <path d="M92 62 L100 62 L98 80 L90 80 Z" fill="#334155"/>
+                            <path d="M85 55 L112 55 L108 95 L98 108 L88 95 Z" fill="#0f172a"/>
+                            <path d="M88 58 L109 58 L105 92 L98 103 L91 92 Z" fill="#f59e0b"/>
+                            <path d="M92 62 L105 62 L102 88 L98 97 L94 88 Z" fill="#dc2626"/>
+
+                            <!-- Front Helmet & Face Cover -->
+                            <rect x="38" y="22" width="44" height="34" rx="10" fill="#64748b"/>
+                            <path d="M40 20 Q60 10 80 20 L82 38 L38 38 Z" fill="#475569"/>
+                            <!-- Helmet Horns -->
+                            <path d="M38 30 C20 20, 20 5, 30 0 C32 12, 34 22, 38 26 Z" fill="#fef08a"/>
+                            <path d="M82 30 C100 20, 100 5, 90 0 C88 12, 86 22, 82 26 Z" fill="#fef08a"/>
+                            <!-- Glowing Eye Visor (Front Facing Eyes) -->
+                            <rect x="44" y="32" width="32" height="8" rx="2" fill="#0f172a"/>
+                            <circle cx="52" cy="36" r="3" fill="#38bdf8" class="animate-pulse"/>
+                            <circle cx="68" cy="36" r="3" fill="#38bdf8" class="animate-pulse"/>
+                        </svg>
+                        <span class="text-[10px] md:text-xs font-bold text-cyan-300 font-cyber mt-1 bg-slate-900/80 px-2 py-0.5 rounded-full border border-cyan-500/50">HERO (YOU)</span>
+                    </div>
+
+                    <!-- MONSTER SPRITE (FRONT FACING DRAGON / MONSTER) -->
+                    <div id="enemyContainer" class="relative animate-dragon-idle z-20 flex flex-col items-center">
+                        <div class="w-full mb-2 text-center">
+                            <span id="enemyName" class="text-[10px] md:text-xs font-bold text-rose-300 font-cyber block bg-slate-900/80 px-2 py-0.5 rounded-full border border-rose-500/50 mb-1">ANCIENT DRAGON</span>
+                            <div class="w-24 md:w-36 bg-slate-950 h-2 md:h-3 rounded-full border border-slate-700 overflow-hidden mx-auto">
+                                <div id="enemyHpBar" class="bg-gradient-to-r from-rose-500 to-amber-500 h-full w-full transition-all duration-300"></div>
+                            </div>
+                        </div>
+                        <div id="enemySvgBox" class="w-32 h-32 md:w-52 md:h-52 transition-all flex items-center justify-center">
+                            <!-- Rendered SVG Dragon / Monsters -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JAPANESE PROMPT BOX -->
+                <div class="w-full text-center bg-slate-950/90 border-2 border-amber-400/80 rounded-2xl py-3 px-4 shadow-2xl z-20">
+                    <span class="text-xs md:text-sm text-amber-400 font-bold block mb-1">【日本語】意味する英単語をタイプせよ！</span>
+                    <h2 id="japanesePrompt" class="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-wider font-sans drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
+                        日本語問題
+                    </h2>
+                </div>
+            </div>
+
+            <!-- MASSIVE TYPING INPUT AREA & HINT TARGET -->
+            <div class="w-full bg-slate-900/95 border-4 border-amber-500/80 rounded-3xl p-3 md:p-5 shadow-2xl flex flex-col gap-2">
+                
+                <!-- Student Input Display (Placed directly below Battle Arena) -->
+                <div class="text-center relative">
+                    <div class="text-xs md:text-sm text-amber-400 font-bold uppercase tracking-widest mb-1 flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-keyboard text-lg"></i> あなたの入力 (YOUR TYPING)
+                    </div>
+                    
+                    <div id="typedDisplay" class="text-3xl sm:text-5xl md:text-7xl font-black font-cyber tracking-widest text-yellow-300 text-glow-yellow min-h-[60px] md:min-h-[85px] flex items-center justify-center break-all bg-slate-950/90 rounded-2xl border-2 border-amber-500/60 p-2 shadow-inner">
+                        <span class="animate-pulse text-slate-600">TYPE HERE...</span>
+                    </div>
+
+                    <input type="text" id="hiddenInput" autocomplete="off" spellcheck="false" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-20" autofocus />
+                </div>
+
+                <!-- Target Hint / Model Answer Display -->
+                <div class="text-center bg-slate-950/60 py-2 px-3 rounded-2xl border border-slate-800">
+                    <div class="text-[11px] md:text-xs text-slate-400 font-bold uppercase tracking-widest mb-0.5">
+                        ヒント (HINT TARGET)
+                    </div>
+                    <div id="hintDisplay" class="text-2xl sm:text-4xl md:text-5xl font-black font-cyber tracking-widest text-cyan-300 text-glow-cyan min-h-[40px] md:min-h-[50px] flex items-center justify-center break-all">
+                        _ _ _
+                    </div>
+                </div>
+
+                <div id="feedbackText" class="text-center text-xs md:text-sm font-bold h-5 text-slate-400">
+                    キーボードで英単語を入力してください
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: GAME OVER / RESULT SCREEN -->
+        <div id="screenResult" class="hidden w-full max-w-3xl bg-slate-900/95 border-4 border-amber-500/80 rounded-3xl p-6 md:p-10 text-center shadow-2xl relative z-10 my-auto">
+            <div id="resultHeaderIcon" class="text-amber-400 text-5xl md:text-7xl mb-2 font-cyber animate-bounce">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h2 id="resultTitle" class="text-3xl md:text-5xl font-black text-white font-cyber mb-2">STAGE CLEAR!</h2>
+            <p id="resultSubtitle" class="text-slate-300 text-xs md:text-base mb-6">すべての単語問題のタイプ学習が完了しました！</p>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                    <div class="text-[10px] text-slate-400 font-bold">TOTAL SCORE</div>
+                    <div id="finalScore" class="text-xl md:text-3xl font-black text-yellow-400 font-cyber">0</div>
+                </div>
+                <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                    <div class="text-[10px] text-slate-400 font-bold">MAX COMBO</div>
+                    <div id="finalMaxCombo" class="text-xl md:text-3xl font-black text-fuchsia-400 font-cyber">0</div>
+                </div>
+                <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                    <div class="text-[10px] text-slate-400 font-bold">ACCURACY</div>
+                    <div id="finalAccuracy" class="text-xl md:text-3xl font-black text-cyan-400 font-cyber">100%</div>
+                </div>
+                <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                    <div class="text-[10px] text-slate-400 font-bold">MODE</div>
+                    <div id="finalDifficulty" class="text-lg md:text-2xl font-black text-emerald-400 font-cyber">NORMAL</div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button onclick="startBattle()" class="px-8 py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-lg rounded-xl shadow-lg shadow-amber-500/30 transition-all font-cyber flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> もう一度プレイ
+                </button>
+                <button onclick="goToStartScreen()" class="px-8 py-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-lg rounded-xl border border-slate-600 transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-house"></i> トップに戻る
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- TEACHER MANAGEMENT MODAL -->
+    <div id="teacherModal" class="hidden fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-3xl bg-slate-900 border-2 border-indigo-500 rounded-3xl p-6 md:p-8 max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl">
+            <div class="flex justify-between items-center pb-4 border-b border-slate-800">
+                <h3 class="text-xl md:text-2xl font-black text-white flex items-center gap-3">
+                    <i class="fa-solid fa-sliders text-indigo-400"></i> 問題セット管理・CSV機能
+                </h3>
+                <button onclick="closeTeacherModal()" class="text-slate-400 hover:text-white text-2xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="py-4 space-y-6 overflow-y-auto flex-grow pr-2">
+                <!-- Add New Dataset Section -->
+                <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+                    <h4 class="text-lg font-bold text-indigo-400 flex items-center gap-2">
+                        <i class="fa-solid fa-plus-circle"></i> 新規問題セット作成 / CSV取り込み
+                    </h4>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1">問題セットタイトル</label>
+                        <input type="text" id="modalDatasetTitle" placeholder="例: 中学英単語100" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500" />
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-bold text-slate-400">CSVデータ（カンマ区切り: 日本語,英語）</label>
+                            <button onclick="downloadCsvFormat()" class="text-xs text-indigo-400 hover:text-indigo-300 font-bold underline">
+                                <i class="fa-solid fa-download"></i> 雛形CSVをダウンロード
+                            </button>
+                        </div>
+                        <textarea id="csvTextArea" rows="4" placeholder="りんご,apple&#10;学校,school&#10;勉強する,study" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white text-xs font-mono focus:outline-none focus:border-indigo-500"></textarea>
+                    </div>
+                    <div class="flex flex-wrap gap-2 justify-between items-center pt-1">
+                        <label class="cursor-pointer px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-600 text-xs font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-file-upload"></i> CSVファイルを読み込む
+                            <input type="file" accept=".csv" onchange="handleCSVFile(event)" class="hidden" />
+                        </label>
+                        <button onclick="saveNewDataset()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-indigo-600/30">
+                            保存する
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Existing Datasets Delete Section -->
+                <div>
+                    <h4 class="text-base font-bold text-slate-300 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-trash-can text-rose-400"></i> 登録済み問題セット一覧
+                    </h4>
+                    <div id="deleteDatasetList" class="space-y-2 max-h-48 overflow-y-auto">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QUIT GAME CONFIRMATION MODAL -->
+    <div id="quitModal" class="hidden fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-slate-900 border-2 border-amber-500/80 rounded-3xl p-6 text-center shadow-2xl">
+            <i class="fa-solid fa-triangle-exclamation text-amber-400 text-4xl mb-3 animate-bounce"></i>
+            <h3 class="text-xl font-black text-white mb-2 font-cyber">ゲームを途中で終了しますか？</h3>
+            <p class="text-xs md:text-sm text-slate-300 mb-6 font-sans">
+                現在の進行状況やスコアは破棄され、ホーム画面に戻ります。
+            </p>
+            <div class="flex gap-3 justify-center">
+                <button onclick="closeQuitModal()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs md:text-sm transition-all border border-slate-600">
+                    ゲームを続ける
+                </button>
+                <button onclick="confirmQuit()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-black rounded-xl text-xs md:text-sm transition-all shadow-lg shadow-rose-600/30 flex items-center gap-2">
+                    <i class="fa-solid fa-house"></i> ホーム画面に戻る
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_DATASETS = {
+            "基本英単語 (Basic 10)": [
+                { jp: "りんご", en: "apple" },
+                { jp: "学校", en: "school" },
+                { jp: "本", en: "book" },
+                { jp: "友達", en: "friend" },
+                { jp: "音楽", en: "music" },
+                { jp: "家族", en: "family" },
+                { jp: "水", en: "water" },
+                { jp: "太陽", en: "sun" },
+                { jp: "時間", en: "time" },
+                { jp: "世界", en: "world" }
+            ],
+            "日常会話 (Daily 10)": [
+                { jp: "朝食", en: "breakfast" },
+                { jp: "旅行", en: "travel" },
+                { jp: "未来", en: "future" },
+                { jp: "挑戦", en: "challenge" },
+                { jp: "知識", en: "knowledge" },
+                { jp: "勇気", en: "courage" },
+                { jp: "勝利", en: "victory" },
+                { jp: "危険", en: "danger" },
+                { jp: "冒険", en: "adventure" },
+                { jp: "秘密", en: "secret" }
+            ]
+        };
+
+        const MONSTER_SVGS = {
+            dragon: `<svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-[0_0_15px_rgba(239,68,68,0.7)]">
+                <path d="M 20 80 Q 10 50 30 30 Q 50 10 70 30 Q 90 50 80 80 Z" fill="#dc2626"/>
+                <path d="M 35 35 Q 50 20 65 35 Q 70 60 50 75 Q 30 60 35 35 Z" fill="#ef4444"/>
+                <path d="M 40 45 Q 50 35 60 45 Q 65 65 50 75 Q 35 65 40 45 Z" fill="#f59e0b"/>
+                <path d="M 30 35 Q 5 20 15 50 Q 25 40 30 40 Z" fill="#991b1b"/>
+                <path d="M 70 35 Q 95 20 85 50 Q 75 40 70 40 Z" fill="#991b1b"/>
+                <circle cx="43" cy="32" r="3" fill="#fef08a"/>
+                <circle cx="57" cy="32" r="3" fill="#fef08a"/>
+                <circle cx="43" cy="32" r="1" fill="#000"/>
+                <circle cx="57" cy="32" r="1" fill="#000"/>
+                <path d="M 38 25 Q 30 10 33 5 Q 40 18 42 22 Z" fill="#f59e0b"/>
+                <path d="M 62 25 Q 70 10 67 5 Q 60 18 58 22 Z" fill="#f59e0b"/>
+                <path d="M 45 38 L 50 42 L 55 38 Z" fill="#fff"/>
+            </svg>`,
+            demon: `<svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-[0_0_15px_rgba(168,85,247,0.7)]">
+                <path d="M 25 75 Q 20 40 40 25 Q 50 20 60 25 Q 80 40 75 75 Z" fill="#6b21a8"/>
+                <path d="M 32 35 Q 50 25 68 35 Q 70 65 50 75 Q 30 65 32 35 Z" fill="#8b5cf6"/>
+                <path d="M 35 25 Q 20 5 15 15 Q 28 22 32 28 Z" fill="#c084fc"/>
+                <path d="M 65 25 Q 80 5 85 15 Q 72 22 68 28 Z" fill="#c084fc"/>
+                <circle cx="42" cy="38" r="4" fill="#a855f7"/>
+                <circle cx="58" cy="38" r="4" fill="#a855f7"/>
+                <circle cx="42" cy="38" r="2" fill="#fff"/>
+                <circle cx="58" cy="38" r="2" fill="#fff"/>
+                <path d="M 40 55 Q 50 65 60 55" stroke="#f43f5e" stroke-width="3" fill="none"/>
+            </svg>`,
+            golem: `<svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-[0_0_15px_rgba(100,116,139,0.7)]">
+                <rect x="25" y="20" width="50" height="40" rx="8" fill="#475569"/>
+                <rect x="20" y="55" width="60" height="35" rx="10" fill="#334155"/>
+                <rect x="30" y="25" width="40" height="30" rx="5" fill="#64748b"/>
+                <rect x="35" y="35" width="10" height="6" rx="2" fill="#38bdf8"/>
+                <rect x="55" y="35" width="10" height="6" rx="2" fill="#38bdf8"/>
+                <circle cx="50" cy="72" r="8" fill="#38bdf8"/>
+            </svg>`
+        };
+
+        // STATE VARIABLES
+        let datasets = {};
+        let activeWordList = [];
+        let currentDifficulty = 'normal';
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let combo = 0;
+        let maxCombo = 0;
+        let totalKeyStrokes = 0;
+        let correctKeyStrokes = 0;
+        let currentTyped = "";
+        let audioEnabled = true;
+        let isGamePaused = false;
+
+        let maxHp = 7;
+        let currentHp = 7;
+        let isTakingDamage = false;
+
+        let timerInterval = null;
+        let timeRemaining = 10.0;
+        const TIME_LIMIT = 10.0;
+
+        /* WEB AUDIO SYNTH */
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        let bgmInterval = null;
+        let bgmStep = 0;
+        let isBgmPlaying = false;
+
+        // Energetic 8-bit RPG Battle Theme Melody & Bassline frequencies (A minor)
+        const bgmMelody = [
+            220, 0, 220, 261.63, 293.66, 0, 329.63, 0, 
+            392, 0, 329.63, 293.66, 261.63, 0, 220, 0,
+            440, 0, 440, 523.25, 493.88, 0, 440, 0,
+            392, 0, 329.63, 0, 293.66, 329.63, 220, 0
+        ];
+
+        const bgmBass = [
+            110, 110, 110, 110, 130.81, 130.81, 130.81, 130.81,
+            146.83, 146.83, 146.83, 146.83, 110, 110, 110, 110,
+            110, 110, 110, 110, 130.81, 130.81, 130.81, 130.81,
+            146.83, 146.83, 164.81, 164.81, 110, 110, 110, 110
+        ];
+
+        function playBgmStep() {
+            if (!audioEnabled || !audioCtx || !isBgmPlaying) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const now = audioCtx.currentTime;
+            const melFreq = bgmMelody[bgmStep % bgmMelody.length];
+            const bassFreq = bgmBass[bgmStep % bgmBass.length];
+
+            if (melFreq > 0) {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(melFreq, now);
+                gain.gain.setValueAtTime(0.03, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            }
+
+            if (bassFreq > 0) {
+                const bOsc = audioCtx.createOscillator();
+                const bGain = audioCtx.createGain();
+                bOsc.type = 'triangle';
+                bOsc.frequency.setValueAtTime(bassFreq, now);
+                bGain.gain.setValueAtTime(0.05, now);
+                bGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                bOsc.connect(bGain);
+                bGain.connect(audioCtx.destination);
+                bOsc.start(now);
+                bOsc.stop(now + 0.12);
+            }
+
+            bgmStep++;
+        }
+
+        function startBgm() {
+            if (isBgmPlaying) return;
+            isBgmPlaying = true;
+            bgmStep = 0;
+            if (bgmInterval) clearInterval(bgmInterval);
+            bgmInterval = setInterval(playBgmStep, 130);
+        }
+
+        function stopBgm() {
+            isBgmPlaying = false;
+            if (bgmInterval) {
+                clearInterval(bgmInterval);
+                bgmInterval = null;
+            }
+        }
+
+        function playSound(type) {
+            if (!audioEnabled || !audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'key') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.exponentialRampToValueAtTime(900, now + 0.04);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
+                osc.start(now); osc.stop(now + 0.04);
+            } else if (type === 'hit') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.15);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now); osc.stop(now + 0.15);
+            } else if (type === 'defeat') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(80, now + 0.35);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                osc.start(now); osc.stop(now + 0.35);
+            } else if (type === 'error') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(130, now);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            }
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            document.getElementById('soundIcon').className = audioEnabled ? 
+                "fa-solid fa-volume-high text-amber-400" : "fa-solid fa-volume-xmark text-slate-500";
+            if (!audioEnabled) {
+                stopBgm();
+            } else if (!document.getElementById('screenGame').classList.contains('hidden') && !isGamePaused) {
+                startBgm();
+            }
+        }
+
+        /* INITIALIZATION */
+        window.onload = function() {
+            loadDatasetsFromStorage();
+            populateDatasetDropdown();
+            setupHiddenInputListeners();
+            selectDifficulty('normal');
+        };
+
+        function loadDatasetsFromStorage() {
+            const saved = localStorage.getItem('vt_datasets_store_rpg');
+            if (saved) {
+                try { datasets = JSON.parse(saved); } catch(e) { datasets = { ...DEFAULT_DATASETS }; }
+            } else {
+                datasets = { ...DEFAULT_DATASETS };
+                saveDatasetsToStorage();
+            }
+        }
+
+        function saveDatasetsToStorage() {
+            localStorage.setItem('vt_datasets_store_rpg', JSON.stringify(datasets));
+        }
+
+        function populateDatasetDropdown() {
+            const select = document.getElementById('datasetSelect');
+            select.innerHTML = '';
+            Object.keys(datasets).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = `${name} (${datasets[name].length}問)`;
+                select.appendChild(opt);
+            });
+            onDatasetChange();
+        }
+
+        function onDatasetChange() {
+            const select = document.getElementById('datasetSelect');
+            const name = select.value;
+            if (datasets[name]) {
+                activeWordList = datasets[name];
+                document.getElementById('datasetInfoText').innerText = `収録問題数: ${activeWordList.length}問`;
+                document.getElementById('totalQuestionsNum').innerText = activeWordList.length;
+            }
+        }
+
+        function selectDifficulty(diff) {
+            currentDifficulty = diff;
+            ['easy', 'normal', 'hard'].forEach(m => {
+                const btn = document.getElementById(`btn${m.charAt(0).toUpperCase() + m.slice(1)}`);
+                if (m === diff) {
+                    btn.classList.add('ring-4', 'ring-amber-400', 'scale-102');
+                } else {
+                    btn.classList.remove('ring-4', 'ring-amber-400', 'scale-102');
+                }
+            });
+        }
+
+        function renderHintDisplay(word) {
+            const hintElem = document.getElementById('hintDisplay');
+            if (!hintElem) return;
+
+            const lower = word.toLowerCase();
+            const len = lower.length;
+
+            if (currentDifficulty === 'easy') {
+                if (len <= 1) {
+                    hintElem.innerText = lower;
+                } else if (len === 2) {
+                    hintElem.innerText = lower[0] + " " + lower[1];
+                } else {
+                    let res = lower[0];
+                    for (let i = 1; i < len - 1; i++) {
+                        if (lower[i] === ' ') res += '  ';
+                        else res += ' _';
+                    }
+                    res += ' ' + lower[len - 1];
+                    hintElem.innerText = res;
+                }
+            } else if (currentDifficulty === 'normal') {
+                let res = [];
+                for (let i = 0; i < len; i++) {
+                    if (lower[i] === ' ') res.push(' ');
+                    else res.push('_');
+                }
+                hintElem.innerText = res.join(' ');
+            } else if (currentDifficulty === 'hard') {
+                hintElem.innerText = "???";
+            }
+        }
+
+        /* GAME LOGIC & BATTLE LOOPS */
+        function startBattle() {
+            if (!activeWordList || activeWordList.length === 0) {
+                alert("問題データがありません。問題セットを選択するか管理画面で作成してください。");
+                return;
+            }
+
+            activeWordList = shuffleArray([...activeWordList]);
+
+            const totalQ = activeWordList.length;
+            if (currentDifficulty === 'easy') {
+                maxHp = totalQ * 2;
+            } else if (currentDifficulty === 'normal') {
+                maxHp = totalQ;
+            } else {
+                maxHp = Math.max(1, Math.ceil(totalQ * (2 / 3)));
+            }
+            currentHp = maxHp;
+            isTakingDamage = false;
+
+            currentQuestionIndex = 0;
+            score = 0;
+            combo = 0;
+            maxCombo = 0;
+            totalKeyStrokes = 0;
+            correctKeyStrokes = 0;
+
+            document.getElementById('screenStart').classList.add('hidden');
+            document.getElementById('screenResult').classList.add('hidden');
+            document.getElementById('screenGame').classList.remove('hidden');
+
+            updateHpDisplay();
+            loadCurrentQuestion();
+            startBgm();
+        }
+
+        function updateHpDisplay() {
+            const hpText = document.getElementById('heroHpText');
+            const hpBar = document.getElementById('heroHpBar');
+            if (hpText) hpText.innerText = `${currentHp} / ${maxHp}`;
+            if (hpBar) {
+                const pct = Math.max(0, (currentHp / maxHp) * 100);
+                hpBar.style.width = `${pct}%`;
+                if (pct <= 30) {
+                    hpBar.className = "bg-gradient-to-r from-red-600 to-rose-500 h-full w-full transition-all duration-300";
+                } else if (pct <= 60) {
+                    hpBar.className = "bg-gradient-to-r from-amber-500 to-yellow-400 h-full w-full transition-all duration-300";
+                } else {
+                    hpBar.className = "bg-gradient-to-r from-rose-500 to-emerald-400 h-full w-full transition-all duration-300";
+                }
+            }
+        }
+
+        function triggerHeroDamage() {
+            if (isTakingDamage) return;
+            isTakingDamage = true;
+
+            currentHp = Math.max(0, currentHp - 1);
+            updateHpDisplay();
+
+            const hero = document.getElementById('heroContainer');
+            const enemy = document.getElementById('enemyContainer');
+
+            // Trigger enemy attack & hero damage animations
+            if (enemy) enemy.className = "relative animate-monster-attack z-20 flex flex-col items-center";
+            if (hero) hero.className = "relative animate-hero-damage z-20 flex flex-col items-center";
+
+            setTimeout(() => {
+                if (enemy) enemy.className = "relative animate-dragon-idle z-20 flex flex-col items-center";
+                if (hero) hero.className = "relative animate-hero-idle z-20 flex flex-col items-center";
+                isTakingDamage = false;
+
+                if (currentHp <= 0) {
+                    finishGame(true); // Game Over
+                }
+            }, 450);
+        }
+
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function loadCurrentQuestion() {
+            if (currentQuestionIndex >= activeWordList.length) {
+                finishGame(false); // Stage Clear
+                return;
+            }
+
+            // 全画面模範解答オーバレイを非表示に
+            const overlay = document.getElementById('modelAnswerOverlay');
+            if (overlay) overlay.classList.add('hidden');
+
+            const currentObj = activeWordList[currentQuestionIndex];
+            currentTyped = "";
+
+            document.getElementById('currentQuestionNum').innerText = currentQuestionIndex + 1;
+            document.getElementById('japanesePrompt').innerText = currentObj.jp;
+            document.getElementById('scoreDisplay').innerText = String(score).padStart(4, '0');
+            document.getElementById('comboDisplay').innerText = combo;
+
+            renderHintDisplay(currentObj.en);
+            updateTypedDisplay();
+
+            // Load Enemy SVG
+            const svgBox = document.getElementById('enemySvgBox');
+            const keys = ['dragon', 'demon', 'golem'];
+            const monsterKey = keys[currentQuestionIndex % keys.length];
+            if (svgBox) svgBox.innerHTML = MONSTER_SVGS[monsterKey];
+
+            const enemyContainer = document.getElementById('enemyContainer');
+            if (enemyContainer) enemyContainer.className = "relative animate-dragon-idle z-20 flex flex-col items-center";
+
+            const enemyHpBar = document.getElementById('enemyHpBar');
+            if (enemyHpBar) enemyHpBar.style.width = "100%";
+
+            const enemyName = document.getElementById('enemyName');
+            if (enemyName) enemyName.innerText = monsterKey === 'dragon' ? "ANCIENT DRAGON" : (monsterKey === 'demon' ? "SHADOW DEMON" : "IRON GOLEM");
+
+            resetTimer();
+
+            const hiddenInput = document.getElementById('hiddenInput');
+            if (hiddenInput) {
+                hiddenInput.value = "";
+                hiddenInput.focus();
+            }
+        }
+
+        function updateTypedDisplay() {
+            const typedElem = document.getElementById('typedDisplay');
+            if (!typedElem) return;
+
+            if (currentTyped.length === 0) {
+                typedElem.innerHTML = `<span class="animate-pulse text-slate-600">TYPE HERE...</span>`;
+                return;
+            }
+
+            const targetWord = activeWordList[currentQuestionIndex].en.toLowerCase();
+            let html = "";
+
+            // 間違っている文字も含めて装飾表示（正解部分は黄色、間違い部分は赤色）
+            for (let i = 0; i < currentTyped.length; i++) {
+                const char = currentTyped[i];
+                if (i < targetWord.length && char === targetWord[i]) {
+                    html += `<span class="text-yellow-300">${escapeHtml(char)}</span>`;
+                } else {
+                    html += `<span class="text-rose-500 underline bg-rose-950/80 px-1 rounded">${escapeHtml(char)}</span>`;
+                }
+            }
+            typedElem.innerHTML = html;
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        function setupHiddenInputListeners() {
+            const hiddenInput = document.getElementById('hiddenInput');
+
+            document.getElementById('mainApp').addEventListener('click', () => {
+                if (!document.getElementById('screenGame').classList.contains('hidden')) {
+                    hiddenInput.focus();
+                }
+            });
+
+            hiddenInput.addEventListener('input', () => {
+                const targetWord = activeWordList[currentQuestionIndex].en.toLowerCase();
+                const inputVal = hiddenInput.value.toLowerCase();
+                
+                totalKeyStrokes++;
+                const prevLen = currentTyped.length;
+                currentTyped = inputVal;
+
+                updateTypedDisplay();
+
+                // 入力された文字が正解の接頭辞と合致しているか判定
+                if (targetWord.startsWith(inputVal)) {
+                    correctKeyStrokes++;
+                    playSound('key');
+
+                    if (currentTyped === targetWord) {
+                        handleCorrectAnswer();
+                    }
+                } else {
+                    // 間違った文字が打たれた時の効果音とコンボリセット
+                    if (inputVal.length > prevLen) {
+                        playSound('error');
+                        combo = 0;
+                        document.getElementById('comboDisplay').innerText = combo;
+                    }
+                }
+            });
+        }
+
+        // 全画面で模範解答を表示する演出関数
+        function showModelAnswerOverlay(isCorrect) {
+            const currentObj = activeWordList[currentQuestionIndex];
+            const overlay = document.getElementById('modelAnswerOverlay');
+            const badge = document.getElementById('answerResultBadge');
+            const enElem = document.getElementById('overlayAnswerEn');
+            const jpElem = document.getElementById('overlayAnswerJp');
+            const userTextElem = document.getElementById('overlayUserTypedText');
+
+            if (!overlay) return;
+
+            enElem.innerText = currentObj.en.toUpperCase();
+            jpElem.innerText = `【意味】 ${currentObj.jp}`;
+            userTextElem.innerText = currentTyped || "(未入力)";
+
+            if (isCorrect) {
+                badge.className = "text-2xl md:text-4xl font-black font-cyber mb-2 px-6 py-2 rounded-full shadow-lg bg-emerald-500 text-slate-950 animate-bounce";
+                badge.innerText = "✨ GREAT! 正解 ✨";
+                overlay.className = "absolute inset-0 bg-slate-950/95 z-40 flex flex-col items-center justify-center p-6 text-center transition-all duration-300 border-4 border-emerald-400";
+            } else {
+                badge.className = "text-2xl md:text-4xl font-black font-cyber mb-2 px-6 py-2 rounded-full shadow-lg bg-rose-600 text-white animate-bounce";
+                badge.innerText = "❌ MISS! 不正解 ❌";
+                overlay.className = "absolute inset-0 bg-slate-950/95 z-40 flex flex-col items-center justify-center p-6 text-center transition-all duration-300 border-4 border-rose-500";
+            }
+
+            overlay.classList.remove('hidden');
+        }
+
+        function handleCorrectAnswer() {
+            clearInterval(timerInterval);
+
+            combo++;
+            if (combo > maxCombo) maxCombo = combo;
+
+            const timeBonus = Math.round(timeRemaining * 50);
+            const difficultyMultiplier = currentDifficulty === 'hard' ? 2.0 : (currentDifficulty === 'normal' ? 1.4 : 1.0);
+            score += Math.round((100 + timeBonus + (combo * 20)) * difficultyMultiplier);
+
+            // Trigger RPG Sword Attack & Defeat Visuals
+            playSound('hit');
+            const hero = document.getElementById('heroContainer');
+            const enemy = document.getElementById('enemyContainer');
+            const enemyHpBar = document.getElementById('enemyHpBar');
+            const slashEffect = document.getElementById('slashEffect');
+            const koBanner = document.getElementById('koBanner');
+
+            if (hero) hero.className = "relative animate-hero-attack z-20 flex flex-col items-center";
+            if (enemyHpBar) enemyHpBar.style.width = "0%";
+
+            setTimeout(() => {
+                if (enemy) enemy.className = "relative animate-monster-defeat z-20 flex flex-col items-center";
+                if (slashEffect) {
+                    slashEffect.classList.remove('opacity-0');
+                    slashEffect.classList.add('animate-slash-effect');
+                }
+            }, 150);
+
+            setTimeout(() => {
+                playSound('defeat');
+                if (koBanner) koBanner.classList.remove('opacity-0');
+            }, 300);
+
+            // 画面いっぱいの模範解答を表示
+            setTimeout(() => {
+                if (hero) hero.className = "relative animate-hero-idle z-20 flex flex-col items-center";
+                if (slashEffect) {
+                    slashEffect.classList.add('opacity-0');
+                    slashEffect.classList.remove('animate-slash-effect');
+                }
+                if (koBanner) koBanner.classList.add('opacity-0');
+
+                showModelAnswerOverlay(true);
+            }, 700);
+
+            // 1.8秒後に次の問題へ
+            setTimeout(() => {
+                currentQuestionIndex++;
+                loadCurrentQuestion();
+            }, 2500);
+        }
+
+        function handleTimeOut() {
+            combo = 0;
+            document.getElementById('comboDisplay').innerText = combo;
+            playSound('error');
+
+            const feedback = document.getElementById('feedbackText');
+            const correctText = activeWordList[currentQuestionIndex].en;
+            feedback.innerHTML = `<span class="text-rose-400 font-bold">TIME OUT! 正解: <strong class="text-yellow-300 text-xl font-cyber">${correctText}</strong></span>`;
+
+            // Enemy attacks hero on time out
+            triggerHeroDamage();
+
+            // 画面いっぱいの模範解答を表示
+            setTimeout(() => {
+                showModelAnswerOverlay(false);
+            }, 400);
+
+            setTimeout(() => {
+                if (currentHp > 0) {
+                    feedback.innerText = "キーボードで英単語を入力してください";
+                    currentQuestionIndex++;
+                    loadCurrentQuestion();
+                }
+            }, 2600);
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            timeRemaining = TIME_LIMIT;
+            updateTimerBar();
+
+            timerInterval = setInterval(() => {
+                if (isGamePaused) return;
+
+                timeRemaining -= 0.1;
+                if (timeRemaining <= 0) {
+                    timeRemaining = 0;
+                    updateTimerBar();
+                    clearInterval(timerInterval);
+                    handleTimeOut();
+                } else {
+                    updateTimerBar();
+                }
+            }, 100);
+        }
+
+        function updateTimerBar() {
+            const timeBar = document.getElementById('timeBar');
+            const timeText = document.getElementById('timeText');
+            const pct = (timeRemaining / TIME_LIMIT) * 100;
+            
+            timeBar.style.width = `${pct}%`;
+            timeText.innerText = `${timeRemaining.toFixed(1)}s`;
+        }
+
+        function finishGame(isGameOver = false) {
+            clearInterval(timerInterval);
+            stopBgm();
+
+            document.getElementById('screenGame').classList.add('hidden');
+            document.getElementById('screenResult').classList.remove('hidden');
+
+            const iconElem = document.getElementById('resultHeaderIcon');
+            const titleElem = document.getElementById('resultTitle');
+            const subtitleElem = document.getElementById('resultSubtitle');
+
+            if (isGameOver) {
+                iconElem.className = "text-rose-500 text-5xl md:text-7xl mb-2 font-cyber animate-bounce";
+                iconElem.innerHTML = `<i class="fa-solid fa-skull-crossbones"></i>`;
+                titleElem.innerText = "GAME OVER...";
+                titleElem.className = "text-3xl md:text-5xl font-black text-rose-500 font-cyber mb-2";
+                subtitleElem.innerText = "HPがゼロになりました... もう一度挑戦してみよう！";
+            } else {
+                iconElem.className = "text-amber-400 text-5xl md:text-7xl mb-2 font-cyber animate-bounce";
+                iconElem.innerHTML = `<i class="fa-solid fa-trophy"></i>`;
+                titleElem.innerText = "STAGE CLEAR!";
+                titleElem.className = "text-3xl md:text-5xl font-black text-white font-cyber mb-2";
+                subtitleElem.innerText = "すべての単語問題のタイプ学習が完了しました！";
+            }
+
+            const accuracy = totalKeyStrokes > 0 ? Math.round((correctKeyStrokes / totalKeyStrokes) * 100) : 100;
+
+            document.getElementById('finalScore').innerText = score;
+            document.getElementById('finalMaxCombo').innerText = maxCombo;
+            document.getElementById('finalAccuracy').innerText = `${accuracy}%`;
+            document.getElementById('finalDifficulty').innerText = currentDifficulty.toUpperCase();
+        }
+
+        function openQuitModal() {
+            isGamePaused = true;
+            stopBgm();
+            document.getElementById('quitModal').classList.remove('hidden');
+        }
+
+        function closeQuitModal() {
+            isGamePaused = false;
+            document.getElementById('quitModal').classList.add('hidden');
+            const hiddenInput = document.getElementById('hiddenInput');
+            if (hiddenInput && !document.getElementById('screenGame').classList.contains('hidden')) {
+                hiddenInput.focus();
+                startBgm();
+            }
+        }
+
+        function confirmQuit() {
+            closeQuitModal();
+            goToStartScreen();
+        }
+
+        function goToStartScreen() {
+            clearInterval(timerInterval);
+            stopBgm();
+            isGamePaused = false;
+            document.getElementById('screenGame').classList.add('hidden');
+            document.getElementById('screenResult').classList.add('hidden');
+            document.getElementById('screenStart').classList.remove('hidden');
+        }
+
+        /* TEACHER CSV MODAL LOGIC */
+        function openTeacherModal() {
+            renderDeleteDatasetList();
+            document.getElementById('teacherModal').classList.remove('hidden');
+        }
+
+        function closeTeacherModal() {
+            document.getElementById('teacherModal').classList.add('hidden');
+        }
+
+        function handleCSVFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('csvTextArea').value = e.target.result;
+            };
+            reader.readAsText(file);
+        }
+
+        function downloadCsvFormat() {
+            const sampleCsv = "日本語,英単語\nりんご,apple\n学校,school\n勉強する,study\n難しい,difficult\n";
+            const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), sampleCsv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "Vocabulary_Trainer_Sample.csv";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function saveNewDataset() {
+            const title = document.getElementById('modalDatasetTitle').value.trim();
+            const text = document.getElementById('csvTextArea').value.trim();
+
+            if (!title) {
+                alert("問題セットの名前を入力してください。");
+                return;
+            }
+            if (!text) {
+                alert("CSV問題データを入力してください。");
+                return;
+            }
+
+            const lines = text.split('\n');
+            const newWords = [];
+
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+                const parts = line.split(',');
+                if (parts.length >= 2) {
+                    const jp = parts[0].trim();
+                    const en = parts[1].trim().toLowerCase();
+                    if (jp && en && jp !== "日本語") newWords.push({ jp, en });
+                }
+            }
+
+            if (newWords.length === 0) {
+                alert("有効な問題データが見つかりませんでした。「日本語,英語」形式で入力してください。");
+                return;
+            }
+
+            datasets[title] = newWords;
+            saveDatasetsToStorage();
+            populateDatasetDropdown();
+            renderDeleteDatasetList();
+
+            document.getElementById('modalDatasetTitle').value = "";
+            document.getElementById('csvTextArea').value = "";
+            alert(`問題セット「${title}」(${newWords.length}問) を保存しました！`);
+        }
+
+        function renderDeleteDatasetList() {
+            const container = document.getElementById('deleteDatasetList');
+            container.innerHTML = "";
+            Object.keys(datasets).forEach(name => {
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800";
+                div.innerHTML = `
+                    <span class="text-sm font-bold text-slate-300">${name} (${datasets[name].length}問)</span>
+                    <button onclick="deleteDataset('${name}')" class="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold">
+                        削除
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function deleteDataset(name) {
+            if (confirm(`問題セット「${name}」を削除してもよろしいですか？`)) {
+                delete datasets[name];
+                saveDatasetsToStorage();
+                populateDatasetDropdown();
+                renderDeleteDatasetList();
+            }
+        }
+    </script>
+</body>
+</html>
